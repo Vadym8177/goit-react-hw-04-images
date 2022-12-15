@@ -1,79 +1,63 @@
-import { Component } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageGallery } from './ImageGallery/ImageGallery';
 import { Searchbar } from './Searchbar/Searchbar';
 import { Loader } from './Loader/Loader';
 import { Button } from './Button/Button';
-import PropTypes from 'prop-types';
 
 import css from '../components/styles.module.css';
 
-export class App extends Component {
-  static propTypes = {
-    state: PropTypes.shape({
-      imgName: PropTypes.string.isRequired,
-      page: PropTypes.number.isRequired,
-      img: PropTypes.array.isRequired,
-      isLoading: PropTypes.bool.isRequired,
-    }),
-  };
+export function App() {
+  const [imgName, setImgName] = useState('');
+  const [page, setPage] = useState(1);
+  const [img, setImg] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
 
-  state = {
-    imgName: '',
-    page: 1,
-    img: [],
-    isLoading: false,
-  };
+  useEffect(() => {
+    if (!imgName) return;
+    setIsLoading(true);
 
-  componentDidUpdate(prevProps, prevState) {
-    const { imgName, page } = this.state;
-    if (prevState.imgName !== imgName || prevState.page !== page) {
-      this.setState({ isLoading: true });
-      fetch(`https://pixabay.com/api/?q=${imgName}&page=${page}&key=29444023-fe7d4e5e60b2e765be0bef471&image_type=photo&orientation=horizontal&per_page=12
+    fetch(`https://pixabay.com/api/?q=${imgName}&page=${page}&key=29444023-fe7d4e5e60b2e765be0bef471&image_type=photo&orientation=horizontal&per_page=12
 `)
-        .then(r => {
-          if (r.ok) {
-            return r.json();
-          }
-          return Promise.reject(new Error('Oops error'));
-        })
-        .then(data => {
-          this.setState(prevState => ({
-            img: [
-              ...prevState.img,
-              ...data.hits.map(img => {
-                const { largeImageURL, webformatURL, tags, id } = img;
-                return {
-                  largeImageURL: largeImageURL,
-                  webformatURL: webformatURL,
-                  tags: tags,
-                  id: id,
-                };
-              }),
-            ],
-          }));
-        })
-        .finally(() => {
-          this.setState({ isLoading: false });
-        });
-    }
-  }
+      .then(r => {
+        if (r.ok) {
+          return r.json();
+        }
+        return Promise.reject(new Error('Oops error'));
+      })
+      .then(data => {
+        setImg(img => [
+          ...img,
+          ...data.hits.map(img => {
+            const { largeImageURL, webformatURL, tags, id } = img;
+            return {
+              largeImageURL: largeImageURL,
+              webformatURL: webformatURL,
+              tags: tags,
+              id: id,
+            };
+          }),
+        ]);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, [imgName, page]);
 
-  handleFormSubmit = imgName => {
-    this.setState({ imgName, page: 1, img: [] });
+  const handleFormSubmit = imgName => {
+    setImgName(imgName);
+    setPage(1);
+    setImg([]);
   };
 
-  nextPage = () => {
-    this.setState(prev => ({ page: prev.page + 1 }));
+  const nextPage = () => {
+    setPage(prev => prev + 1);
   };
-  render() {
-    const { img, isLoading } = this.state;
-    return (
-      <div className={css.App}>
-        <Searchbar onSubmit={this.handleFormSubmit} />
-        {img.length !== 0 && <ImageGallery images={img} />}
-        {isLoading && <Loader />}
-        {img.length > 11 && <Button loadMoreBtn={this.nextPage} />}
-      </div>
-    );
-  }
+  return (
+    <div className={css.App}>
+      <Searchbar onSubmit={handleFormSubmit} />
+      {img.length !== 0 && <ImageGallery images={img} />}
+      {isLoading && <Loader />}
+      {img.length > 11 && <Button loadMoreBtn={nextPage} />}
+    </div>
+  );
 }
